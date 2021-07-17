@@ -6,11 +6,23 @@
 using namespace cv;
 using namespace std;
 
-float distth  = 20;   // Distance threshold for new track
-int   klost   = 20;   // Number of frame after a track is deleted if lost
-
+tracker_params TrackerParams;
 vector<track>  Tracks;
 vector<object> Objects;
+
+// Set tracker parameters
+void Tracker_SetParameters(float distth,
+                           int   klost,
+                           float c_cr,
+                           float c_tl,
+                           float c_br) {
+
+  TrackerParams.distth = distth;
+  TrackerParams.klost  = klost;
+  TrackerParams.c_cr   = c_cr;
+  TrackerParams.c_tl   = c_tl;
+  TrackerParams.c_br   = c_br;
+}
 
 // Clear all objects
 void Tracker_ClearObjects() {
@@ -26,18 +38,16 @@ void Tracker_AddObject(Rect rect_obj) {
 }
 
 // Measure distance between track and object
-float a1 = 1.0;
-float a2 = 0.25;
-float a3 = 0.25;
 float Tracker_Distance(object Obj, track Trck) {
   float d = 0;
-  Point2f dcr = Obj.p - Trck.p.back();
-  // Point2f dtl = Obj.rect.tl() - Trck.rect.tl();
-  // Point2f dbr = Obj.rect.br() - Trck.rect.br();
 
-  d += a1*sqrt(abs(dcr.x*dcr.x + dcr.y*dcr.y));
-  // d += a2*sqrt(abs(dtl.x*dtl.x + dtl.y*dtl.y));
-  // d += a3*sqrt(abs(dbr.x*dbr.x + dbr.y*dbr.y));
+  Point2f dcr = Obj.p         - Trck.p.back();
+  Point2f dtl = Obj.rect.tl() - Trck.rect.tl();
+  Point2f dbr = Obj.rect.br() - Trck.rect.br();
+
+  d += TrackerParams.c_cr*sqrt(abs(dcr.x*dcr.x + dcr.y*dcr.y));
+  d += TrackerParams.c_tl*sqrt(abs(dtl.x*dtl.x + dtl.y*dtl.y));
+  d += TrackerParams.c_br*sqrt(abs(dbr.x*dbr.x + dbr.y*dbr.y));
 
   return d;
 }
@@ -49,7 +59,7 @@ void Tracker_PredictTracks() {
     // Initialize it to not found
     Tracks[trck].found = false;
 
-    // Predict new position of tracks
+    // Predict new position of tracks / TODO : Predict rectangle as-well
     Tracks[trck].a = Tracks[trck].a;
     Tracks[trck].v = Tracks[trck].v + 1/2*Tracks[trck].a;
     Tracks[trck].p.push_back(Tracks[trck].p.back() + Tracks[trck].v);
@@ -75,7 +85,7 @@ void Tracker_Associate() {
     }
 
     // Create new track if no track match the object
-    if ((mindist > distth) || (mintrck == -1)) {
+    if ((mindist > TrackerParams.distth) || (mintrck == -1)) {
       track NewElem;
       NewElem.p.push_back(Objects[obj].p);
       NewElem.rect = Objects[obj].rect;
@@ -114,7 +124,7 @@ int Tracker_ResampleTracks() {
 
   vector<track> Tracks2;
   for (int trck = 0; trck < Tracks.size(); trck++) {
-    if (Tracks[trck].klost <= klost || Tracks[trck].found) {
+    if (Tracks[trck].klost <= TrackerParams.klost || Tracks[trck].found) {
       Tracks2.push_back(Tracks[trck]);
     }
   }

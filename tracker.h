@@ -1,5 +1,12 @@
 #include "struct.h"
 
+// Set tracker parameters
+void Tracker_SetParameters(float distth, 
+                           int   klost,
+                           float c_cr,
+                           float c_tl,
+                           float c_br);
+
 // Clear all objects
 void Tracker_ClearObjects();
 
