@@ -11,13 +11,13 @@ vector<track>  Tracks;
 vector<object> Objects;
 
 // Set tracker parameters
-void Tracker_SetParameters(float distth,
+void Tracker_SetParameters(float simith,
                            int   klost,
                            float c_cr,
                            float c_tl,
                            float c_br) {
 
-  TrackerParams.distth = distth;
+  TrackerParams.simith = simith;
   TrackerParams.klost  = klost;
   TrackerParams.c_cr   = c_cr;
   TrackerParams.c_tl   = c_tl;
@@ -37,19 +37,21 @@ void Tracker_AddObject(Rect rect_obj) {
   });
 }
 
-// Measure distance between track and object
-float Tracker_Distance(object Obj, track Trck) {
-  float d = 0;
+// Measure similarity between track and object
+float Tracker_Similarity(object Obj, track Trk) {
 
-  Point2f dcr = Obj.p         - Trck.p.back();
-  Point2f dtl = Obj.rect.tl() - Trck.rect.tl();
-  Point2f dbr = Obj.rect.br() - Trck.rect.br();
+  // Ratio of overlapping
+  Rect Inter   = Obj.rect & Trk.rect;
 
-  d += TrackerParams.c_cr*sqrt(abs(dcr.x*dcr.x + dcr.y*dcr.y));
-  d += TrackerParams.c_tl*sqrt(abs(dtl.x*dtl.x + dtl.y*dtl.y));
-  d += TrackerParams.c_br*sqrt(abs(dbr.x*dbr.x + dbr.y*dbr.y));
+  // Areas
+  float Area_I = Inter.width    * Inter.height    / 2.0;
+  float Area_O = Obj.rect.width * Obj.rect.height / 2.0;
+  float Area_T = Trk.rect.width * Trk.rect.height / 2.0;
 
-  return d;
+  // Similarity (if same then s = 1, if not overlapping then 0)
+  float s = 2*Area_I/(Area_O+Area_T);
+
+  return s;
 }
 
 // Predict futur position of tracks
@@ -63,29 +65,33 @@ void Tracker_PredictTracks() {
     Tracks[trck].a = Tracks[trck].a;
     Tracks[trck].v = Tracks[trck].v + 1/2*Tracks[trck].a;
     Tracks[trck].p.push_back(Tracks[trck].p.back() + Tracks[trck].v);
+
+    // Move rect
+    Tracks[trck].rect.x = Tracks[trck].p.back().x;
+    Tracks[trck].rect.y = Tracks[trck].p.back().y;
   }
 }
 
 // Associate Tracks with Objects
-void Tracker_Associate() {
+void Tracker_Associate(Mat display) {
   for (int obj = 0; obj < Objects.size(); obj++) {
-    float mindist = 1000000;
-    int mintrck = -1;
-    float dist;
+    float maxsimi = 0.0;
+    int maxtrck = -1;
+    float simi;
     for (int trck = 0; trck < Tracks.size(); trck++) {
 
       // Measure similarity
-      dist = Tracker_Distance(Objects[obj], Tracks[trck]);
+      simi = Tracker_Similarity(Objects[obj], Tracks[trck]);
 
-      // Save the one with the minimum distance
-      if (dist < mindist) {
-        mindist = dist;
-        mintrck = trck;
+      // Save the one with the maximum similarity
+      if (simi > maxsimi) {
+        maxsimi = simi;
+        maxtrck = trck;
       }
     }
 
     // Create new track if no track match the object
-    if ((mindist > TrackerParams.distth) || (mintrck == -1)) {
+    if ((maxsimi <= TrackerParams.simith) || (maxtrck == -1)) {
       track NewElem;
       NewElem.p.push_back(Objects[obj].p);
       NewElem.rect = Objects[obj].rect;
@@ -96,17 +102,17 @@ void Tracker_Associate() {
     else {
 
       // Update counters
-      Tracks[mintrck].kfound++;
-      Tracks[mintrck].klost = 0;
-      Tracks[mintrck].found = true;
+      Tracks[maxtrck].kfound++;
+      Tracks[maxtrck].klost = 0;
+      Tracks[maxtrck].found = true;
 
       // Update track position
-      Tracks[mintrck].p.back() = Objects[obj].p; // TODO : Bayesian filter
-      Tracks[mintrck].rect     = Objects[obj].rect;
+      Tracks[maxtrck].p.back() = Objects[obj].p; // TODO : Bayesian filter
+      Tracks[maxtrck].rect     = Objects[obj].rect;
 
       // Calculate new speed and acceleration
-      Tracks[mintrck].v = Tracks[mintrck].p.end()[-1] - Tracks[mintrck].p.end()[-2];
-      Tracks[mintrck].a = (Tracks[mintrck].p.end()[-1] - Tracks[mintrck].p.end()[-2]) - (Tracks[mintrck].p.end()[-2] - Tracks[mintrck].p.end()[-3]);
+      Tracks[maxtrck].v = Tracks[maxtrck].p.end()[-1] - Tracks[maxtrck].p.end()[-2];
+      Tracks[maxtrck].a = (Tracks[maxtrck].p.end()[-1] - Tracks[maxtrck].p.end()[-2]) - (Tracks[maxtrck].p.end()[-2] - Tracks[maxtrck].p.end()[-3]);
     }
   }
 

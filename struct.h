@@ -9,7 +9,7 @@ using namespace std;
 
   // Structure of parameters
   struct tracker_params {
-    float distth  = 20;   // Distance threshold for new track
+    float simith  = 0.1;   // Similarity threshold for new track
     int   klost   = 20;   // Number of frame after a track is deleted if lost
 
     // Coefficient for distance to :

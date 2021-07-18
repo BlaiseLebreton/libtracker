@@ -14,13 +14,13 @@ void Tracker_ClearObjects();
 void Tracker_AddObject(Rect rect_obj);
 
 // Measure distance between track and object
-float Tracker_Distance(object Obj, track Trck);
+float Tracker_Similarity(object Obj, track Trk);
 
 // Predict futur position of tracks
 void Tracker_PredictTracks();
 
 // Associate Tracks with Objects
-void Tracker_Associate();
+void Tracker_Associate(Mat display);
 
 // Resample tracks
 int Tracker_ResampleTracks();
