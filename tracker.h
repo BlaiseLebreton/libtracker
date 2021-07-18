@@ -1,7 +1,7 @@
 #include "struct.h"
 
 // Set tracker parameters
-void Tracker_SetParameters(float distth, 
+void Tracker_SetParameters(float distth,
                            int   klost,
                            float c_cr,
                            float c_tl,
@@ -22,8 +22,11 @@ void Tracker_PredictTracks();
 // Associate Tracks with Objects
 void Tracker_Associate();
 
+// Resample tracks
+int Tracker_ResampleTracks();
+
 // Draw tracks
 void Tracker_DrawTracks(Mat img);
 
-// Resample tracks
-int Tracker_ResampleTracks();
+// Get Tracks
+vector<track> Tracker_GetTracks();

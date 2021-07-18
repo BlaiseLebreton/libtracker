@@ -157,3 +157,8 @@ void Tracker_DrawTracks(Mat img) {
     }
   }
 }
+
+// Get Tracks
+vector<track> Tracker_GetTracks() {
+  return Tracks;
+}
