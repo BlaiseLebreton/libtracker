@@ -73,7 +73,7 @@ void Tracker_PredictTracks() {
 }
 
 // Associate Tracks with Objects
-void Tracker_Associate(Mat display) {
+void Tracker_Associate() {
   for (int obj = 0; obj < Objects.size(); obj++) {
     float maxsimi = 0.0;
     int maxtrck = -1;

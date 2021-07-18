@@ -20,7 +20,7 @@ float Tracker_Similarity(object Obj, track Trk);
 void Tracker_PredictTracks();
 
 // Associate Tracks with Objects
-void Tracker_Associate(Mat display);
+void Tracker_Associate();
 
 // Resample tracks
 int Tracker_ResampleTracks();
