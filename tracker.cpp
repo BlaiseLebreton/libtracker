@@ -61,12 +61,12 @@ void Tracker_PredictTracks() {
     // Initialize it to not found
     Tracks[trck].found = false;
 
-    // Predict new position of tracks / TODO : Predict rectangle as-well
+    // Predict new position of tracks
     Tracks[trck].a = Tracks[trck].a;
     Tracks[trck].v = Tracks[trck].v + 1/2*Tracks[trck].a;
     Tracks[trck].p.push_back(Tracks[trck].p.back() + Tracks[trck].v);
 
-    // Move rect
+    // Move rect to predicted position
     Tracks[trck].rect.x = Tracks[trck].p.back().x;
     Tracks[trck].rect.y = Tracks[trck].p.back().y;
   }
@@ -121,7 +121,7 @@ void Tracker_Associate() {
   for (int trck = 0; trck < Tracks.size(); trck++) {
     if (!Tracks[trck].found) {
       Tracks[trck].klost++;
-      Tracks[trck].kfound = 0;   // Pas sur
+      Tracks[trck].kfound = 0;
     }
   }
 }
