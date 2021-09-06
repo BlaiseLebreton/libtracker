@@ -10,18 +10,50 @@ tracker_params TrackerParams;
 vector<track>  Tracks;
 vector<object> Objects;
 
+// Evolution matrices
+// double dt = 1.0/60.0;
+double dt = 1.0;
+Mat I = (Mat_<double>(S, S) << 1, 0, 0, 0, 0, 0,
+                               0, 1, 0, 0, 0, 0,
+                               0, 0, 1, 0, 0, 0,
+                               0, 0, 0, 1, 0, 0,
+                               0, 0, 0, 0, 1, 0,
+                               0, 0, 0, 0, 0, 1);
+
+Mat A = (Mat_<double>(S, S) << 1, 0, dt,  0, 1/2*dt*dt,         0,
+                               0, 1,  0, dt,         0, 1/2*dt*dt,
+                               0, 0,  1,  0,        dt,         0,
+                               0, 0,  0,  1,         0,        dt,
+                               0, 0,  0,  0,         1,         0,
+                               0, 0,  0,  0,         0,         1);
+Mat B =  Mat_<double>(S, S);
+Mat C = I;
+
+Mat U = Mat_<double>(S, 1);
+
+// Noise matrices
+Mat Rn = (Mat_<double>(S, S) <<  5e+1,      0,    0,    0,     0,     0,
+                                    0,   5e+1,    0,    0,     0,     0,
+                                    0,      0, 2e+1,    0,     0,     0,
+                                    0,      0,    0, 2e+1,     0,     0,
+                                    0,      0,    0,    0,  1e+1,     0,
+                                    0,      0,    0,    0,     0,  1e+1);
+
+Mat Rv = (Mat_<double>(S, S) <<  1e-1,    0,     0,     0,     0,     0,
+                                    0, 1e-1,     0,     0,     0,     0,
+                                    0,    0,  1e-2,     0,     0,     0,
+                                    0,    0,     0,  1e-2,     0,     0,
+                                    0,    0,     0,     0,  1e-3,     0,
+                                    0,    0,     0,     0,     0,  1e-3);
+
 // Set tracker parameters
-void Tracker_SetParameters(float simith,
-                           int   klost,
-                           float c_cr,
-                           float c_tl,
-                           float c_br) {
+void Tracker_SetParameters(double simith,
+                           int    klost,
+                           int    method) {
 
   TrackerParams.simith = simith;
   TrackerParams.klost  = klost;
-  TrackerParams.c_cr   = c_cr;
-  TrackerParams.c_tl   = c_tl;
-  TrackerParams.c_br   = c_br;
+  TrackerParams.method = method;
 }
 
 // Clear all objects
@@ -38,18 +70,29 @@ void Tracker_AddObject(Rect rect_obj) {
 }
 
 // Measure similarity between track and object
-float Tracker_Similarity(object Obj, track Trk) {
+double Tracker_Similarity(object Obj, int trck) {
 
-  // Ratio of overlapping
-  Rect Inter   = Obj.rect & Trk.rect;
+  double s = 0;
 
-  // Areas
-  float Area_I = Inter.width    * Inter.height    / 2.0;
-  float Area_O = Obj.rect.width * Obj.rect.height / 2.0;
-  float Area_T = Trk.rect.width * Trk.rect.height / 2.0;
+  // Area overlapping
+  if (TrackerParams.method == 1) {
+    // Ratio of overlapping
+    Rect Inter   = Obj.rect & Tracks[trck].rect;
 
-  // Similarity (if same then s = 1, if not overlapping then 0)
-  float s = 2*Area_I/(Area_O+Area_T);
+    // Areas
+    double Area_I = Inter.width    * Inter.height    / 2.0;
+    double Area_O = Obj.rect.width * Obj.rect.height / 2.0;
+    double Area_T = Tracks[trck].rect.width * Tracks[trck].rect.height / 2.0;
+
+    s = 2*Area_I/(Area_O+Area_T);
+  }
+
+  // Euclidian distance
+  else if (TrackerParams.method == 2) {
+    double dx = Obj.p.x - Tracks[trck].Xp.at<double>(0,0);
+    double dy = Obj.p.y - Tracks[trck].Xp.at<double>(1,0);
+    s  = 1.0/sqrt(dx*dx + dy*dy);
+  }
 
   return s;
 }
@@ -61,39 +104,49 @@ void Tracker_PredictTracks() {
     // Initialize it to not found
     Tracks[trck].found = false;
 
-    // Predict new position of tracks
-    Tracks[trck].a = Tracks[trck].a;
-    Tracks[trck].v = Tracks[trck].v + 1/2*Tracks[trck].a;
-    Tracks[trck].p.push_back(Tracks[trck].p.back() + Tracks[trck].v);
+    // Predict new vector state
+    Tracks[trck].Xp = A*Tracks[trck].Xr + B*U;
+
+    // Predict new measure
+    Tracks[trck].Zp = C*Tracks[trck].Xp;
+
+    // Predict new uncertainty
+    Tracks[trck].P = A*Tracks[trck].P*A.t() + Rv;
 
     // Move rect to predicted position
-    Tracks[trck].rect.x = Tracks[trck].p.back().x;
-    Tracks[trck].rect.y = Tracks[trck].p.back().y;
+    Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
+    Point2f tl = center - Point2f(Tracks[trck].rect.width/2.0, Tracks[trck].rect.height/2.0);
+    Tracks[trck].rect.x = tl.x;
+    Tracks[trck].rect.y = tl.y;
   }
 }
 
 // Associate Tracks with Objects
 void Tracker_Associate() {
   for (int obj = 0; obj < Objects.size(); obj++) {
-    float maxsimi = 0.0;
-    int maxtrck = -1;
-    float simi;
+    double maxsimi = 0.0;
+    int mtrck = -1;
+    double simi;
     for (int trck = 0; trck < Tracks.size(); trck++) {
 
       // Measure similarity
-      simi = Tracker_Similarity(Objects[obj], Tracks[trck]);
+      simi = Tracker_Similarity(Objects[obj], trck);
 
       // Save the one with the maximum similarity
       if (simi > maxsimi) {
         maxsimi = simi;
-        maxtrck = trck;
+        mtrck = trck;
       }
     }
 
     // Create new track if no track match the object
-    if ((maxsimi <= TrackerParams.simith) || (maxtrck == -1)) {
+    if ((maxsimi <= TrackerParams.simith) || (mtrck == -1)) {
       track NewElem;
       NewElem.p.push_back(Objects[obj].p);
+      NewElem.Xr = 0;
+      NewElem.P  = Rn;
+      NewElem.Xr.at<double>(0,0) = Objects[obj].p.x;
+      NewElem.Xr.at<double>(1,0) = Objects[obj].p.y;
       NewElem.rect = Objects[obj].rect;
       Tracks.push_back(NewElem);
     }
@@ -102,17 +155,45 @@ void Tracker_Associate() {
     else {
 
       // Update counters
-      Tracks[maxtrck].kfound++;
-      Tracks[maxtrck].klost = 0;
-      Tracks[maxtrck].found = true;
+      Tracks[mtrck].kfound++;
+      Tracks[mtrck].klost = 0;
+      Tracks[mtrck].found = true;
 
-      // Update track position
-      Tracks[maxtrck].p.back() = Objects[obj].p; // TODO : Bayesian filter
-      Tracks[maxtrck].rect     = Objects[obj].rect;
+      // Virtual sensors
+      double dx  = Objects[obj].p.x - Tracks[mtrck].Xr.at<double>(0,0);
+      double dy  = Objects[obj].p.y - Tracks[mtrck].Xr.at<double>(1,0);
+      double dvx =            dx/dt - Tracks[mtrck].Xr.at<double>(2,0);
+      double dvy =            dy/dt - Tracks[mtrck].Xr.at<double>(3,0);
 
-      // Calculate new speed and acceleration
-      Tracks[maxtrck].v = Tracks[maxtrck].p.end()[-1] - Tracks[maxtrck].p.end()[-2];
-      Tracks[maxtrck].a = (Tracks[maxtrck].p.end()[-1] - Tracks[maxtrck].p.end()[-2]) - (Tracks[maxtrck].p.end()[-2] - Tracks[maxtrck].p.end()[-3]);
+      // Create measure
+      Mat Zr = (Mat_<double>(6, 1) <<  Objects[obj].p.x,
+                                       Objects[obj].p.y,
+                                       dx/dt,
+                                       dy/dt,
+                                       dvx/dt,
+                                       dvy/dt);
+
+      // Kalman Gain
+      Tracks[mtrck].K  = Tracks[mtrck].P*C.t()*(C*Tracks[mtrck].P*C.t() + Rn).inv();
+
+      // Correction
+      Tracks[mtrck].Xr = Tracks[mtrck].Xr + Tracks[mtrck].K*(Zr - Tracks[mtrck].Zp);
+
+      // Uncertainty
+      Tracks[mtrck].P  = (I - Tracks[mtrck].K*C)*Tracks[mtrck].P;
+
+      // Update position
+      Tracks[mtrck].p.push_back(Point2f(
+        Tracks[mtrck].Xr.at<double>(0,0),
+        Tracks[mtrck].Xr.at<double>(1,0)
+      ));
+
+
+      Point2f center = Point2f(Tracks[mtrck].Xr.at<double>(0,0), Tracks[mtrck].Xr.at<double>(1,0));
+      Point2f tl = center - Point2f(Tracks[mtrck].rect.width/2.0, Tracks[mtrck].rect.height/2.0);
+      Tracks[mtrck].rect   = Objects[obj].rect;
+      Tracks[mtrck].rect.x = tl.x;
+      Tracks[mtrck].rect.y = tl.y;
     }
   }
 
@@ -125,6 +206,7 @@ void Tracker_Associate() {
     }
   }
 }
+
 // Resample tracks
 int Tracker_ResampleTracks() {
 
@@ -139,6 +221,51 @@ int Tracker_ResampleTracks() {
   return Tracks.size();
 }
 
+// Draw uncertainty around predicted position
+void DrawUncertainty(Mat img, int trck) {
+
+  // Get x/y uncertainty only
+  Mat Pxy  = Mat_<double>(2, 2);
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
+      Pxy.at<double>(i,j) = Tracks[trck].P.at<double>(i,j);
+    }
+  }
+
+  Mat eigenvalues;
+  Mat eigenvectors;
+  eigen(Pxy, eigenvalues, eigenvectors); // TODO : Need a way to keep the order of the eigenvals
+
+  double sum = 0;
+  for (int i = 0; i < 2; i++) {
+    sum += eigenvalues.at<double>(i,0);
+  }
+  if (sum < 0) {
+    for (int i = 0; i < 2; i++) {
+      eigenvalues.at<double>(i,0) = abs(eigenvalues.at<double>(i,0));
+    }
+  }
+
+  Point center;
+  center.x = Tracks[trck].Xr.at<double>(0,0);
+  center.y = Tracks[trck].Xr.at<double>(1,0);
+
+  Size axes;
+  // if (isnan(eigenvalues.at<double>(0,0)) || isnan(eigenvalues.at<double>(0,0))) {
+    axes.width  = 25;
+    axes.height = 50;
+  // }
+  // else {
+    // axes.width  = (int)3*sqrt(eigenvalues.at<double>(1,0))+1;
+    // axes.height = (int)3*sqrt(eigenvalues.at<double>(0,0))+1;
+  // }
+
+
+  double angle = -atan2(eigenvectors.at<double>(0,0), eigenvectors.at<double>(1,0))*180/M_PI;
+
+  ellipse(img, center, axes, angle, 0, 360, Tracks[trck].color, 1, 1);
+}
+
 // Draw tracks
 void Tracker_DrawTracks(Mat img) {
   for (int trck = 0; trck < Tracks.size(); trck++) {
@@ -149,18 +276,27 @@ void Tracker_DrawTracks(Mat img) {
     // Center
     circle(img, Tracks[trck].p.back(), 1, Tracks[trck].color, 2);
 
-    // Velocity vector
-    arrowedLine(img, Tracks[trck].p.back(), Tracks[trck].p.back() + Tracks[trck].v*10, Tracks[trck].color, 1, 8, 0, 0.1);
-
-    // Debug
-    // putText    (img, to_string(trck),                Tracks[trck].p.back() + Point2f(0,0),  FONT_HERSHEY_DUPLEX, 0.5, Scalar(255,255,255), 1);
-    // putText    (img, to_string(Tracks[trck].kfound), Tracks[trck].p.back() + Point2f(0,10), FONT_HERSHEY_DUPLEX, 0.5, Scalar(255,255,255), 1);
-    // putText    (img, to_string(Tracks[trck].klost),  Tracks[trck].p.back() + Point2f(0,20), FONT_HERSHEY_DUPLEX, 0.5, Scalar(255,255,255), 1);
+    // Draw ellipse of uncertainty
+    DrawUncertainty(img, trck);
 
     // Trajectory
     for (int ip = 1; ip < Tracks[trck].p.size(); ip++) {
       line(img, Tracks[trck].p[ip-1], Tracks[trck].p[ip], Tracks[trck].color, 2);
     }
+  }
+}
+
+// Draw objects
+void Tracker_DrawObjects(Mat img) {
+  Scalar color = Scalar(0,255,0);
+
+  for (int obj = 0; obj < Objects.size(); obj++) {
+
+    // Bounding box
+    rectangle(img, Objects[obj].rect.tl(), Objects[obj].rect.br(), color, 1);
+
+    // Center
+    circle(img, Objects[obj].p, 1, color, 2);
   }
 }
 

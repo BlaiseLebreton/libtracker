@@ -3,7 +3,7 @@
 using namespace cv;
 using namespace std;
 
-
+#define S 6
 #ifndef STRUCT_TRACK
   #define STRUCT_TRACK
 
@@ -12,18 +12,21 @@ using namespace std;
     float simith  = 0.1;   // Similarity threshold for new track
     int   klost   = 20;   // Number of frame after a track is deleted if lost
 
-    // Coefficient for distance to :
-    float c_cr    = 1.0;  // Center
-    float c_tl    = 0.0;  // Top-left     corner
-    float c_br    = 0.0;  // Bottom-right corner
+    // Method to calculate similarity
+    int method;  // 1 : Area overlapping
+                 // 2 : Euclidian distance
   };
 
   // Structure of tracks
   struct track {
-    vector<Point2f> p;                                                         // Position
+    Mat Xr = Mat_<double>(S, 1); // Real vector state
+    Mat Xp = Mat_<double>(S, 1); // Predicted vector state
+    Mat Zp = Mat_<double>(S, 1); // Predicted measure
+    Mat P  = Mat_<double>(S, S); // Covariance
+    Mat K  = Mat_<double>(S, S); // Kalman gain
+
+    vector<Point2f> p;                                                         // Position history
     Rect            rect;                                                      // Bounding box
-    Point2f         v;                                                         // Speed
-    Point2f         a;                                                         // Acceleration
     int             kfound = 0;                                                // Number of frame track has been updated
     int             klost  = 0;                                                // Number of frame track has been lost
     bool            found  = true;                                             // Found corresponding object at frame
