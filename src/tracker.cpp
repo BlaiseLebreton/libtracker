@@ -102,7 +102,7 @@ void Tracker_Predict() {
   for (int trck = 0; trck < Tracks.size(); trck++) {
 
     // Initialize it to not found
-    Tracks[trck].found = false;
+    Tracks[trck].obj = -1;
 
     // Predict new vector state
     Tracks[trck].Xp = A*Tracks[trck].Xr + B*U;
@@ -157,7 +157,7 @@ void Tracker_Associate() {
       // Update counters
       Tracks[mtrck].kfound++;
       Tracks[mtrck].klost = 0;
-      Tracks[mtrck].found = true;
+      Tracks[mtrck].obj   = obj;
 
       // Virtual sensors
       double dx  = Objects[obj].p.x - Tracks[mtrck].Xr.at<double>(0,0);
@@ -200,7 +200,7 @@ void Tracker_Associate() {
 
   // Update counts
   for (int trck = 0; trck < Tracks.size(); trck++) {
-    if (!Tracks[trck].found) {
+    if (Tracks[trck].obj == -1) {
       Tracks[trck].klost++;
       Tracks[trck].kfound = 0;
     }
@@ -212,7 +212,7 @@ int Tracker_Resample() {
 
   vector<track> Tracks2;
   for (int trck = 0; trck < Tracks.size(); trck++) {
-    if (Tracks[trck].klost <= TrackerParams.klost || Tracks[trck].found) {
+    if (Tracks[trck].klost <= TrackerParams.klost || Tracks[trck].obj != -1) {
       Tracks2.push_back(Tracks[trck]);
     }
   }

@@ -25,6 +25,7 @@ using namespace std;
     Mat P  = Mat_<double>(S, S); // Covariance
     Mat K  = Mat_<double>(S, S); // Kalman gain
 
+    int             obj    = -1;                                               // Object associated to it
     vector<Point2f> p;                                                         // Position history
     Rect            rect;                                                      // Bounding box
     int             kfound = 0;                                                // Number of frame track has been updated
