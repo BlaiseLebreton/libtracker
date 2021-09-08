@@ -98,7 +98,7 @@ double Tracker_Similarity(object Obj, int trck) {
 }
 
 // Predict futur position of tracks
-void Tracker_PredictTracks() {
+void Tracker_Predict() {
   for (int trck = 0; trck < Tracks.size(); trck++) {
 
     // Initialize it to not found
@@ -208,7 +208,7 @@ void Tracker_Associate() {
 }
 
 // Resample tracks
-int Tracker_ResampleTracks() {
+int Tracker_Resample() {
 
   vector<track> Tracks2;
   for (int trck = 0; trck < Tracks.size(); trck++) {

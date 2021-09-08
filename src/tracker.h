@@ -15,13 +15,13 @@ void Tracker_AddObject(Rect rect_obj);
 double Tracker_Similarity(object Obj, track Trk);
 
 // Predict futur position of tracks
-void Tracker_PredictTracks();
+void Tracker_Predict();
 
 // Associate Tracks with Objects
 void Tracker_Associate();
 
 // Resample tracks
-int Tracker_ResampleTracks();
+int Tracker_Resample();
 
 // Draw uncertainty ellipse
 void DrawUncertainty(Mat img, track Trk);
