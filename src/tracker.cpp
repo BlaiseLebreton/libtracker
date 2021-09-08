@@ -159,41 +159,6 @@ void Tracker_Associate() {
       Tracks[mtrck].klost = 0;
       Tracks[mtrck].obj   = obj;
 
-      // Virtual sensors
-      double dx  = Objects[obj].p.x - Tracks[mtrck].Xr.at<double>(0,0);
-      double dy  = Objects[obj].p.y - Tracks[mtrck].Xr.at<double>(1,0);
-      double dvx =            dx/dt - Tracks[mtrck].Xr.at<double>(2,0);
-      double dvy =            dy/dt - Tracks[mtrck].Xr.at<double>(3,0);
-
-      // Create measure
-      Mat Zr = (Mat_<double>(6, 1) <<  Objects[obj].p.x,
-                                       Objects[obj].p.y,
-                                       dx/dt,
-                                       dy/dt,
-                                       dvx/dt,
-                                       dvy/dt);
-
-      // Kalman Gain
-      Tracks[mtrck].K  = Tracks[mtrck].P*C.t()*(C*Tracks[mtrck].P*C.t() + Rn).inv();
-
-      // Correction
-      Tracks[mtrck].Xr = Tracks[mtrck].Xr + Tracks[mtrck].K*(Zr - Tracks[mtrck].Zp);
-
-      // Uncertainty
-      Tracks[mtrck].P  = (I - Tracks[mtrck].K*C)*Tracks[mtrck].P;
-
-      // Update position
-      Tracks[mtrck].p.push_back(Point2f(
-        Tracks[mtrck].Xr.at<double>(0,0),
-        Tracks[mtrck].Xr.at<double>(1,0)
-      ));
-
-
-      Point2f center = Point2f(Tracks[mtrck].Xr.at<double>(0,0), Tracks[mtrck].Xr.at<double>(1,0));
-      Point2f tl = center - Point2f(Tracks[mtrck].rect.width/2.0, Tracks[mtrck].rect.height/2.0);
-      Tracks[mtrck].rect   = Objects[obj].rect;
-      Tracks[mtrck].rect.x = tl.x;
-      Tracks[mtrck].rect.y = tl.y;
     }
   }
 
@@ -203,6 +168,50 @@ void Tracker_Associate() {
     if (Tracks[trck].obj == -1) {
       Tracks[trck].klost++;
       Tracks[trck].kfound = 0;
+    }
+  }
+}
+
+void Tracker_Correct() {
+
+  for (int trck = 0; trck < Tracks.size(); trck++) {
+    if (Tracks[trck].obj != -1) {
+
+      // Virtual sensors
+      double dx  = Objects[Tracks[trck].obj].p.x - Tracks[trck].Xr.at<double>(0,0);
+      double dy  = Objects[Tracks[trck].obj].p.y - Tracks[trck].Xr.at<double>(1,0);
+      double dvx =                         dx/dt - Tracks[trck].Xr.at<double>(2,0);
+      double dvy =                         dy/dt - Tracks[trck].Xr.at<double>(3,0);
+
+      // Create measure
+      Mat Zr = (Mat_<double>(6, 1) << Objects[Tracks[trck].obj].p.x,
+                                      Objects[Tracks[trck].obj].p.y,
+                                      dx/dt,
+                                      dy/dt,
+                                      dvx/dt,
+                                      dvy/dt);
+
+      // Kalman Gain
+      Tracks[trck].K  = Tracks[trck].P*C.t()*(C*Tracks[trck].P*C.t() + Rn).inv();
+
+      // Correction
+      Tracks[trck].Xr = Tracks[trck].Xr + Tracks[trck].K*(Zr - Tracks[trck].Zp);
+
+      // Uncertainty
+      Tracks[trck].P  = (I - Tracks[trck].K*C)*Tracks[trck].P;
+
+      // Update position
+      Tracks[trck].p.push_back(Point2f(
+        Tracks[trck].Xr.at<double>(0,0),
+        Tracks[trck].Xr.at<double>(1,0)
+      ));
+
+
+      Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
+      Point2f tl = center - Point2f(Tracks[trck].rect.width/2.0, Tracks[trck].rect.height/2.0);
+      Tracks[trck].rect   = Objects[Tracks[trck].obj].rect;
+      Tracks[trck].rect.x = tl.x;
+      Tracks[trck].rect.y = tl.y;
     }
   }
 }

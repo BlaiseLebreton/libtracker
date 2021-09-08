@@ -20,8 +20,11 @@ void Tracker_Predict();
 // Associate Tracks with Objects
 void Tracker_Associate();
 
+// Correct Tracks using Objects
+void Tracker_Correct();
+
 // Resample tracks
-int Tracker_Resample();
+void Tracker_Resample();
 
 // Draw uncertainty ellipse
 void DrawUncertainty(Mat img, track Trk);
