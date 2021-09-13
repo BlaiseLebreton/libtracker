@@ -114,8 +114,8 @@ void Tracker_Predict() {
     Tracks[trck].P = A*Tracks[trck].P*A.t() + Rv;
 
     // Move rect to predicted position
-    Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
-    Point2f tl = center - Point2f(Tracks[trck].rect.width/2.0, Tracks[trck].rect.height/2.0);
+    Point2f center =          Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
+    Point2f tl     = center - Point2f(Tracks[trck].rect.width/2.0,     Tracks[trck].rect.height/2.0);
     Tracks[trck].rect.x = tl.x;
     Tracks[trck].rect.y = tl.y;
   }
@@ -207,8 +207,8 @@ void Tracker_Correct() {
       ));
 
 
-      Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
-      Point2f tl = center - Point2f(Tracks[trck].rect.width/2.0, Tracks[trck].rect.height/2.0);
+      Point2f center =          Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
+      Point2f tl     = center - Point2f(Tracks[trck].rect.width/2.0,     Tracks[trck].rect.height/2.0);
       Tracks[trck].rect   = Objects[Tracks[trck].obj].rect;
       Tracks[trck].rect.x = tl.x;
       Tracks[trck].rect.y = tl.y;
@@ -255,9 +255,7 @@ void DrawUncertainty(Mat img, int trck) {
     }
   }
 
-  Point center;
-  center.x = Tracks[trck].Xr.at<double>(0,0);
-  center.y = Tracks[trck].Xr.at<double>(1,0);
+  Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
 
   Size axes;
   // if (isnan(eigenvalues.at<double>(0,0)) || isnan(eigenvalues.at<double>(0,0))) {
