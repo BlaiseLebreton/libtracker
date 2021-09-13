@@ -37,3 +37,6 @@ void Tracker_DrawObjects(Mat img);
 
 // Get Tracks
 vector<track> Tracker_GetTracks();
+
+// End of tracker
+void Tracker_Release();

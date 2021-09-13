@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include <opencv2/features2d.hpp>
 
 using namespace cv;
@@ -15,6 +17,8 @@ using namespace std;
     // Method to calculate similarity
     int method;  // 1 : Area overlapping
                  // 2 : Euclidian distance
+
+    ofstream logfile;
   };
 
   // Structure of tracks

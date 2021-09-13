@@ -1,5 +1,8 @@
 #include "struct.h"
 
+#include <iostream>
+#include <fstream>
+
 #include <opencv2/video.hpp>
 #include <opencv2/features2d.hpp>
 
@@ -54,6 +57,9 @@ void Tracker_SetParameters(double simith,
   TrackerParams.simith = simith;
   TrackerParams.klost  = klost;
   TrackerParams.method = method;
+  TrackerParams.logfile.open("videos/out.txt");
+
+  TrackerParams.logfile << "trck xp yp zx zy" <<endl;
 }
 
 // Clear all objects
@@ -212,6 +218,11 @@ void Tracker_Correct() {
       Tracks[trck].rect   = Objects[Tracks[trck].obj].rect;
       Tracks[trck].rect.x = tl.x;
       Tracks[trck].rect.y = tl.y;
+
+      // Log to file
+      if (trck == 0) {
+        TrackerParams.logfile << trck <<" "<< Tracks[trck].Xr.at<double>(0,0) <<" "<< Tracks[trck].Xr.at<double>(1,0) <<" "<< Zr.at<double>(0,0) <<" "<< Zr.at<double>(1,0) <<endl;
+      }
     }
   }
 }
@@ -310,4 +321,8 @@ void Tracker_DrawObjects(Mat img) {
 // Get Tracks
 vector<track> Tracker_GetTracks() {
   return Tracks;
+}
+
+void Tracker_Release() {
+  TrackerParams.logfile.close();
 }
