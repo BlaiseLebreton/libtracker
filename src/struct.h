@@ -31,6 +31,7 @@ using namespace std;
 
     int             obj    = -1;                                               // Object associated to it
     vector<Point2f> p;                                                         // Position history
+    vector<Point2f> z;                                                         // Position history
     Rect            rect;                                                      // Bounding box
     int             kfound = 0;                                                // Number of frame track has been updated
     int             klost  = 0;                                                // Number of frame track has been lost

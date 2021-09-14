@@ -149,6 +149,7 @@ void Tracker_Associate() {
     if ((maxsimi <= TrackerParams.simith) || (mtrck == -1)) {
       track NewElem;
       NewElem.p.push_back(Objects[obj].p);
+      NewElem.z.push_back(Objects[obj].p);
       NewElem.Xr = 0;
       NewElem.P  = Rn;
       NewElem.Xr.at<double>(0,0) = Objects[obj].p.x;
@@ -164,6 +165,7 @@ void Tracker_Associate() {
       Tracks[mtrck].kfound++;
       Tracks[mtrck].klost = 0;
       Tracks[mtrck].obj   = obj;
+      Tracks[mtrck].z.push_back(Objects[obj].p);
 
     }
   }
@@ -184,18 +186,21 @@ void Tracker_Correct() {
     if (Tracks[trck].obj != -1) {
 
       // Virtual sensors
-      double dx  = Objects[Tracks[trck].obj].p.x - Tracks[trck].Xr.at<double>(0,0);
-      double dy  = Objects[Tracks[trck].obj].p.y - Tracks[trck].Xr.at<double>(1,0);
-      double dvx =                         dx/dt - Tracks[trck].Xr.at<double>(2,0);
-      double dvy =                         dy/dt - Tracks[trck].Xr.at<double>(3,0);
+      Point2f p  = Tracks[trck].z.end()[-1];
+      Point2f v1, v2, a;
+      if (Tracks[trck].z.size() > 4) {
+        v1 = (Tracks[trck].z.end()[-1] - Tracks[trck].z.end()[-2])/dt;
+        v2 = (Tracks[trck].z.end()[-2] - Tracks[trck].z.end()[-3])/dt;
+        a  = (v1 - v2)/dt;
+      }
+      else {
+        v1 = Point2f(0, 0);
+        v2 = Point2f(0, 0);
+        a  = Point2f(0, 0);
+      }
 
       // Create measure
-      Mat Zr = (Mat_<double>(6, 1) << Objects[Tracks[trck].obj].p.x,
-                                      Objects[Tracks[trck].obj].p.y,
-                                      dx/dt,
-                                      dy/dt,
-                                      dvx/dt,
-                                      dvy/dt);
+      Mat Zr = (Mat_<double>(6, 1) << p.x, p.y, v1.x, v1.y, a.x, a.y);
 
       // Kalman Gain
       Tracks[trck].K  = Tracks[trck].P*C.t()*(C*Tracks[trck].P*C.t() + Rn).inv();
