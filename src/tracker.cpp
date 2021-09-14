@@ -23,31 +23,31 @@ Mat I = (Mat_<double>(S, S) << 1, 0, 0, 0, 0, 0,
                                0, 0, 0, 0, 1, 0,
                                0, 0, 0, 0, 0, 1);
 
-Mat A = (Mat_<double>(S, S) << 1, 0, dt,  0, 1/2*dt*dt,         0,
-                               0, 1,  0, dt,         0, 1/2*dt*dt,
-                               0, 0,  1,  0,        dt,         0,
-                               0, 0,  0,  1,         0,        dt,
-                               0, 0,  0,  0,         1,         0,
-                               0, 0,  0,  0,         0,         1);
+Mat A = (Mat_<double>(S, S) << 1, 0, dt,  0, pow(dt,2)/2,           0,
+                               0, 1,  0, dt,           0, pow(dt,2)/2,
+                               0, 0,  1,  0,          dt,           0,
+                               0, 0,  0,  1,           0,          dt,
+                               0, 0,  0,  0,           1,           0,
+                               0, 0,  0,  0,           0,           1);
 Mat B =  Mat_<double>(S, S);
 Mat C = I;
 
 Mat U = Mat_<double>(S, 1);
 
 // Noise matrices
-Mat Rn = (Mat_<double>(S, S) <<  5e+1,      0,    0,    0,     0,     0,
-                                    0,   5e+1,    0,    0,     0,     0,
-                                    0,      0, 2e+1,    0,     0,     0,
-                                    0,      0,    0, 2e+1,     0,     0,
-                                    0,      0,    0,    0,  1e+1,     0,
-                                    0,      0,    0,    0,     0,  1e+1);
+Mat Rn = (Mat_<double>(S, S) <<  5e+0,      0,    0,    0,     0,     0,
+                                    0,   5e+0,    0,    0,     0,     0,
+                                    0,      0, 2e+0,    0,     0,     0,
+                                    0,      0,    0, 2e+0,     0,     0,
+                                    0,      0,    0,    0,  2e+0,     0,
+                                    0,      0,    0,    0,     0,  2e+0)*20.0;
 
-Mat Rv = (Mat_<double>(S, S) <<  1e-1,    0,     0,     0,     0,     0,
-                                    0, 1e-1,     0,     0,     0,     0,
-                                    0,    0,  1e-2,     0,     0,     0,
-                                    0,    0,     0,  1e-2,     0,     0,
-                                    0,    0,     0,     0,  1e-3,     0,
-                                    0,    0,     0,     0,     0,  1e-3);
+Mat Rv = (Mat_<double>(S, S) <<  pow(dt,4)/4,             0,    pow(dt,3)/2,              0,     pow(dt,2)/2,               0,
+                                           0,   pow(dt,4)/4,              0,    pow(dt,3)/2,               0,     pow(dt,2)/2,
+                                 pow(dt,3)/2,             0,      pow(dt,2),              0,              dt,               0,
+                                           0,   pow(dt,3)/2,              0,      pow(dt,2),               0,              dt,
+                                 pow(dt,2)/2,             0,             dt,              0,               1,               0,
+                                           0,   pow(dt,2)/2,              0,             dt,               0,               1);
 
 // Set tracker parameters
 void Tracker_SetParameters(double simith,
@@ -57,8 +57,8 @@ void Tracker_SetParameters(double simith,
   TrackerParams.simith = simith;
   TrackerParams.klost  = klost;
   TrackerParams.method = method;
-  TrackerParams.logfile.open("videos/out.txt");
 
+  TrackerParams.logfile.open("videos/out.txt");
   TrackerParams.logfile << "trck x y vx vy ax ay zx zy zvx zvy zax zay" <<endl;
 }
 
@@ -286,15 +286,8 @@ void DrawUncertainty(Mat img, int trck) {
   Point2f center = Point2f(Tracks[trck].Xr.at<double>(0,0), Tracks[trck].Xr.at<double>(1,0));
 
   Size axes;
-  // if (isnan(eigenvalues.at<double>(0,0)) || isnan(eigenvalues.at<double>(0,0))) {
-    axes.width  = 25;
-    axes.height = 50;
-  // }
-  // else {
-    // axes.width  = (int)3*sqrt(eigenvalues.at<double>(1,0))+1;
-    // axes.height = (int)3*sqrt(eigenvalues.at<double>(0,0))+1;
-  // }
-
+  axes.width  = (int)3*sqrt(eigenvalues.at<double>(1,0))+1;
+  axes.height = (int)3*sqrt(eigenvalues.at<double>(0,0))+1;
 
   double angle = -atan2(eigenvectors.at<double>(0,0), eigenvectors.at<double>(1,0))*180/M_PI;
 
