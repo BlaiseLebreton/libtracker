@@ -10,10 +10,27 @@ with open('videos/out.txt','r') as csvfile:
         for fieldname in data.fieldnames:
             datas.setdefault(fieldname, []).append(float(row.get(fieldname)))
 
-i = list(range(1, len(datas['xp'])+1))
-plt.plot   (i, datas['xp'], label='Xp')
-plt.plot   (i, datas['yp'], label='Yp')
-plt.scatter(i, datas['zx'], label='Zx')
-plt.scatter(i, datas['zy'], label='Zy')
-plt.legend()
+i = list(range(1, len(datas['x'])+1))
+fig, axs = plt.subplots(2, 2)
+
+axs[0, 0].plot   (i, datas['x'],  label='X')
+axs[0, 0].plot   (i, datas['y'],  label='Y')
+axs[0, 0].scatter(i, datas['zx'], label='Z_x')
+axs[0, 0].scatter(i, datas['zy'], label='Z_y')
+axs[0, 0].set_title("X/Y")
+axs[0, 0].legend()
+
+axs[0, 1].plot   (i, datas['vx'],  label='Vx')
+axs[0, 1].plot   (i, datas['vy'],  label='Vy')
+axs[0, 1].scatter(i, datas['zvx'], label='Z_vx')
+axs[0, 1].scatter(i, datas['zvy'], label='Z_vy')
+axs[0, 1].set_title("Vx/Vy")
+axs[0, 1].legend()
+
+axs[1, 0].plot   (i, datas['ax'],  label='Ax')
+axs[1, 0].plot   (i, datas['ay'],  label='Ay')
+axs[1, 0].scatter(i, datas['zax'], label='Z_ax')
+axs[1, 0].scatter(i, datas['zay'], label='Z_ay')
+axs[1, 0].set_title("Ax/Ay")
+axs[1, 0].legend()
 plt.show()

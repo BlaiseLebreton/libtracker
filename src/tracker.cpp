@@ -59,7 +59,7 @@ void Tracker_SetParameters(double simith,
   TrackerParams.method = method;
   TrackerParams.logfile.open("videos/out.txt");
 
-  TrackerParams.logfile << "trck xp yp zx zy" <<endl;
+  TrackerParams.logfile << "trck x y vx vy ax ay zx zy zvx zvy zax zay" <<endl;
 }
 
 // Clear all objects
@@ -221,7 +221,19 @@ void Tracker_Correct() {
 
       // Log to file
       if (trck == 0) {
-        TrackerParams.logfile << trck <<" "<< Tracks[trck].Xr.at<double>(0,0) <<" "<< Tracks[trck].Xr.at<double>(1,0) <<" "<< Zr.at<double>(0,0) <<" "<< Zr.at<double>(1,0) <<endl;
+        TrackerParams.logfile << trck <<" "
+                              << Tracks[trck].Xr.at<double>(0,0) <<" "
+                              << Tracks[trck].Xr.at<double>(1,0) <<" "
+                              << Tracks[trck].Xr.at<double>(2,0) <<" "
+                              << Tracks[trck].Xr.at<double>(3,0) <<" "
+                              << Tracks[trck].Xr.at<double>(4,0) <<" "
+                              << Tracks[trck].Xr.at<double>(5,0) <<" "
+                              << Zr.at<double>(0,0) <<" "
+                              << Zr.at<double>(1,0) <<" "
+                              << Zr.at<double>(2,0) <<" "
+                              << Zr.at<double>(3,0) <<" "
+                              << Zr.at<double>(4,0) <<" "
+                              << Zr.at<double>(5,0) <<endl;
       }
     }
   }
